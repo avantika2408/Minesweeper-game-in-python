@@ -3,75 +3,12 @@ import sys
 import os
 
 def main():
-    print("Hello, Welcome to Minesweeper")
-    print("Levels are\n1. 7x7 grid\n2. 10x10 grid\n3. 13x13 grid")
     
-    # Taking level input from the user
-    n = level()
-    list_out = [["▓"] * n for _ in range(n)]
-    list_in = back_grid(n)
-    flags = put_bombs(n, list_in)
+    
+    clear_screen()
+    game_play()
 
-    grid = make_grid(n, list_in)
-    grid_display(n, list_out)
-
-    while True:
-        if win_matrix(n, list_in, list_out):
-            sys.exit("Congrats you won!!!!!!!")
-
-        try:
-            do = int(input("1. Pop Cell\n2. Insert Flag\nChoose: "))
-            if do < 1 or do > 2:
-                raise ValueError
-            elif do == 1:
-                x, y = input("Enter Coordinate (x,y): ").split(",")
-                x = int(x)
-                y = int(y)
-                if list_in[x][y] == "*":
-                    for i in range(n):
-                        for j in range(n):
-                            if list_in[i][j] == "*":
-                                list_out[i][j] = "*"
-                    clear_screen()
-                    grid_display(n, list_out)
-                    sys.exit("Sorry you lost!")
-
-                elif list_in[x][y] != 0:
-                    list_out[x][y] = list_in[x][y]
-                    clear_screen()
-                    grid_display(n, list_out)
-                    print()
-                    print(f"Flags Left: {flags}")
-                    print()
-
-                elif list_in[x][y] == 0:
-                    reveal_zeros(n, x, y, list_in, list_out)
-                    clear_screen()
-                    grid_display(n, list_out)
-                    print(f"Flags Left: {flags}")
-                    print()
-
-            else:
-                a, b = input("Enter Flag Coordinate (x,y): ").split(",")
-                a = int(a)
-                b = int(b)
-                if list_out[a][b] == "F":
-                    print("Already flagged!")
-                else:
-                    list_out[a][b] = "F"
-                    flags -= 1
-                clear_screen()
-                grid_display(n, list_out)
-                print(f"Flags Left: {flags}")
-                print()
-
-        except ValueError:
-            print("Invalid Input")
-
-        except IndexError:
-            print("Coordinate out of bounds")
-
-
+    
 def level():
     while True:
         try:
@@ -100,16 +37,25 @@ def back_grid(n):
 
 
 def grid_display(n, grid):
-    for row in grid:
-        print()
-        for cell in row:
-            print(f"{str(cell):>3}", end=" ")
-            
-        print()
+    
+    # Print the column headers (top)
+    print("   ", end="")
+    for col in range(n):
+        print(f"{col:>3}", end=" ")
     print()
     
+    # Print the grid with row headers (left)
+    for row in range(n):
+        print(f"{row:>2} ", end="")  # Print the row header (left)
+        for cell in grid[row]:
+            print(f"{str(cell):>3}", end=" ")
+        print()
+        print()  # Add space between rows
 
+    
+    print()
 
+    
 def put_bombs(n, list):
     if n == 7:
         k = 7
@@ -163,36 +109,150 @@ def make_grid(n, list):
         pass
 
 
-def reveal_zeros(n, x, y, list_in, list_out):
+def reveal_zeros(n, x, y, inner_grid, outer_grid):
     if x < 0 or x >= n or y < 0 or y >= n:
         return
-    if list_out[x][y] != "▓":
+    if outer_grid[x][y] != "▓":
         return
-    if list_in[x][y] != 0:
-        list_out[x][y] = list_in[x][y]
+    if inner_grid[x][y] != 0:
+        outer_grid[x][y] = inner_grid[x][y]
         return
-    list_out[x][y] = list_in[x][y]
-    reveal_zeros(n, x - 1, y, list_in, list_out)
-    reveal_zeros(n, x + 1, y, list_in, list_out)
-    reveal_zeros(n, x, y - 1, list_in, list_out)
-    reveal_zeros(n, x, y + 1, list_in, list_out)
-    reveal_zeros(n, x + 1, y + 1, list_in, list_out)
-    reveal_zeros(n, x - 1, y + 1, list_in, list_out)
-    reveal_zeros(n, x + 1, y - 1, list_in, list_out)
-    reveal_zeros(n, x - 1, y - 1, list_in, list_out)
+    outer_grid[x][y] = inner_grid[x][y]
+    reveal_zeros(n, x - 1, y, inner_grid, outer_grid)
+    reveal_zeros(n, x + 1, y, inner_grid, outer_grid)
+    reveal_zeros(n, x, y - 1, inner_grid, outer_grid)
+    reveal_zeros(n, x, y + 1, inner_grid, outer_grid)
+    reveal_zeros(n, x + 1, y + 1, inner_grid, outer_grid)
+    reveal_zeros(n, x - 1, y + 1, inner_grid, outer_grid)
+    reveal_zeros(n, x + 1, y - 1, inner_grid, outer_grid)
+    reveal_zeros(n, x - 1, y - 1, inner_grid, outer_grid)
     
 
-
-def win_matrix(n, list_in, list_out):
+def win_matrix(n, inner_grid, outer_grid):
     for i in range(n):
         for j in range(n):
-            if list_in[i][j] != "*" and list_out[i][j] == "▓":
+            if inner_grid[i][j] != "*" and outer_grid[i][j] == "▓":
                 return False
     return True
 
 
 def clear_screen():
     os.system('clear') if os.name == 'posix' else os.system('cls')
+
+
+def game_play():
+
+    print("Hello, Welcome to Minesweeper")
+    print("Levels are\n1. 7x7 grid\n2. 10x10 grid\n3. 13x13 grid")
+    
+    # Taking level input from the user
+    n = level()
+    outer_grid = [["▓"] * n for _ in range(n)]
+    inner_grid = back_grid(n)
+    flags = put_bombs(n, inner_grid)
+
+    grid = make_grid(n, inner_grid)
+    grid_display(n, outer_grid)
+
+    while True:
+        if win_matrix(n, inner_grid, outer_grid):
+            print("Congrats you won!!!!!!!")
+            print()
+            endgame()
+            print()
+
+        try:
+            do = int(input("1. Pop Cell\n2. Insert Flag\n3. Undo Flag\nChoose: "))
+            if do < 1 or do > 3:
+                raise ValueError
+            elif do == 1:
+                x, y = input("Enter Coordinate (x,y): ").split(",")
+                x = int(x)
+                y = int(y)
+
+                if outer_grid[x][y]=="▲":
+                    print("The coordinate is flagged")
+                    print()
+
+                else:
+                    if inner_grid[x][y] == "*":
+                        for i in range(n):
+                            for j in range(n):
+                                if inner_grid[i][j] == "*":
+                                    outer_grid[i][j] = "*"
+                        clear_screen()
+                        grid_display(n, outer_grid)
+                        print("Sorry you lost!")
+                        print()
+                        endgame()
+                        print()
+
+                    elif inner_grid[x][y] != 0:
+                        outer_grid[x][y] = inner_grid[x][y]
+                        clear_screen()
+                        grid_display(n, outer_grid)
+                        print()
+                        print(f"Flags Left: {flags}")
+                        print()
+
+                    elif inner_grid[x][y] == 0:
+                        reveal_zeros(n, x, y, inner_grid, outer_grid)
+                        clear_screen()
+                        grid_display(n, outer_grid)
+                        print(f"Flags Left: {flags}")
+                        print()
+
+            elif do==3:
+                a,b=input("Enter Coordinate to unflag: ").split(",")
+                a=int(a)
+                b=int(b)
+                if outer_grid[a][b]=="▲":
+                    outer_grid[a][b]="▓"
+                    flags=flags+1
+                    clear_screen()
+                    grid_display(n, outer_grid)
+                    print(f"Flags Left: {flags}")
+                    print()
+
+                else:
+                    clear_screen()
+                    grid_display(n, outer_grid)
+                    print(f"Flags Left: {flags}")
+                    print()
+                    print("The coordinate is not flagged")
+
+            else:
+                a, b = input("Enter Flag Coordinate (x,y): ").split(",")
+                a = int(a)
+                b = int(b)
+                if outer_grid[a][b] == "▲":
+                    print("Already flagged!")
+                else:
+                    outer_grid[a][b] = "▲"
+                    flags -= 1
+                clear_screen()
+                grid_display(n, outer_grid)
+                print(f"Flags Left: {flags}")
+                print()
+
+        except ValueError:
+
+            print("Invalid Input")
+
+        except IndexError:
+            print("Coordinate out of bounds")
+
+
+def endgame():
+    ans=input("Do you want to play again (Y/N): ").lower()
+
+    if ans=='y':
+        game_play()
+    elif ans=="n":
+        sys.exit()
+    else:
+        print("invalid input")
+        endgame()
 
 
 if __name__ == "__main__":
